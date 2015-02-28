@@ -27,17 +27,17 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import com.google.common.annotations.GwtCompatible;
-import com.google.common.base.Function;
-import com.google.common.collect.ImmutableList;
+import java.util.Map;
 
-import org.inferred.freebuilder.processor.Analyser;
-import org.inferred.freebuilder.processor.DefaultPropertyFactory;
-import org.inferred.freebuilder.processor.Metadata;
-import org.inferred.freebuilder.processor.MethodIntrospector;
+import javax.annotation.Generated;
+import javax.annotation.Nullable;
+import javax.lang.model.element.PackageElement;
+import javax.lang.model.element.TypeElement;
+
 import org.inferred.freebuilder.processor.Analyser.CannotGenerateCodeException;
 import org.inferred.freebuilder.processor.Metadata.Property;
 import org.inferred.freebuilder.processor.Metadata.StandardMethod;
+import org.inferred.freebuilder.processor.Metadata.UnderrideLevel;
 import org.inferred.freebuilder.processor.PropertyCodeGenerator.Type;
 import org.inferred.freebuilder.processor.util.ImpliedClass;
 import org.inferred.freebuilder.processor.util.testing.FakeMessager;
@@ -48,12 +48,10 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
-import java.util.Map;
-
-import javax.annotation.Generated;
-import javax.annotation.Nullable;
-import javax.lang.model.element.PackageElement;
-import javax.lang.model.element.TypeElement;
+import com.google.common.annotations.GwtCompatible;
+import com.google.common.base.Function;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 
 /** Unit tests for {@link Analyser}. */
 @RunWith(JUnit4.class)
@@ -543,7 +541,10 @@ public class AnalyserTest {
 
     Metadata metadata = analyser.analyse(dataType);
 
-    assertThat(metadata.getUnderriddenMethods()).containsExactly(StandardMethod.EQUALS);
+    assertThat(metadata.getStandardMethodUnderrides()).isEqualTo(ImmutableMap.of(
+        StandardMethod.EQUALS, UnderrideLevel.OVERRIDEABLE,
+        StandardMethod.HASH_CODE, UnderrideLevel.ABSENT,
+        StandardMethod.TO_STRING, UnderrideLevel.ABSENT));
     assertThat(messager.getMessagesByElement().asMap())
         .containsEntry("equals", ImmutableList.of(
             "[ERROR] hashCode and equals must be implemented together on @FreeBuilder types"));
@@ -562,7 +563,10 @@ public class AnalyserTest {
 
     Metadata metadata = analyser.analyse(dataType);
 
-    assertThat(metadata.getUnderriddenMethods()).containsExactly(StandardMethod.HASH_CODE);
+    assertThat(metadata.getStandardMethodUnderrides()).isEqualTo(ImmutableMap.of(
+        StandardMethod.EQUALS, UnderrideLevel.ABSENT,
+        StandardMethod.HASH_CODE, UnderrideLevel.OVERRIDEABLE,
+        StandardMethod.TO_STRING, UnderrideLevel.ABSENT));
     assertThat(messager.getMessagesByElement().asMap())
         .containsEntry("hashCode", ImmutableList.of(
             "[ERROR] hashCode and equals must be implemented together on @FreeBuilder types"));
@@ -584,8 +588,10 @@ public class AnalyserTest {
 
     Metadata metadata = analyser.analyse(dataType);
 
-    assertThat(metadata.getUnderriddenMethods())
-        .containsExactly(StandardMethod.HASH_CODE, StandardMethod.EQUALS);
+    assertThat(metadata.getStandardMethodUnderrides()).isEqualTo(ImmutableMap.of(
+        StandardMethod.EQUALS, UnderrideLevel.OVERRIDEABLE,
+        StandardMethod.HASH_CODE, UnderrideLevel.OVERRIDEABLE,
+        StandardMethod.TO_STRING, UnderrideLevel.ABSENT));
     assertThat(messager.getMessagesByElement().asMap()).isEmpty();
   }
 
@@ -602,7 +608,10 @@ public class AnalyserTest {
 
     Metadata metadata = analyser.analyse(dataType);
 
-    assertThat(metadata.getUnderriddenMethods()).containsExactly(StandardMethod.TO_STRING);
+    assertThat(metadata.getStandardMethodUnderrides()).isEqualTo(ImmutableMap.of(
+        StandardMethod.EQUALS, UnderrideLevel.ABSENT,
+        StandardMethod.HASH_CODE, UnderrideLevel.ABSENT,
+        StandardMethod.TO_STRING, UnderrideLevel.OVERRIDEABLE));
     assertThat(messager.getMessagesByElement().asMap()).isEmpty();
   }
 
@@ -625,8 +634,10 @@ public class AnalyserTest {
 
     Metadata metadata = analyser.analyse(dataType);
 
-    assertThat(metadata.getUnderriddenMethods())
-        .containsExactly(StandardMethod.EQUALS, StandardMethod.HASH_CODE, StandardMethod.TO_STRING);
+    assertThat(metadata.getStandardMethodUnderrides()).isEqualTo(ImmutableMap.of(
+        StandardMethod.EQUALS, UnderrideLevel.OVERRIDEABLE,
+        StandardMethod.HASH_CODE, UnderrideLevel.OVERRIDEABLE,
+        StandardMethod.TO_STRING, UnderrideLevel.OVERRIDEABLE));
     assertThat(messager.getMessagesByElement().asMap()).isEmpty();
   }
 
@@ -643,7 +654,10 @@ public class AnalyserTest {
 
     Metadata metadata = analyser.analyse(dataType);
 
-    assertThat(metadata.getUnderriddenMethods()).containsExactly(StandardMethod.EQUALS);
+    assertThat(metadata.getStandardMethodUnderrides()).isEqualTo(ImmutableMap.of(
+        StandardMethod.EQUALS, UnderrideLevel.FINAL,
+        StandardMethod.HASH_CODE, UnderrideLevel.ABSENT,
+        StandardMethod.TO_STRING, UnderrideLevel.ABSENT));
     assertThat(messager.getMessagesByElement().asMap())
         .containsEntry("equals", ImmutableList.of(
             "[ERROR] hashCode and equals must be implemented together on @FreeBuilder types"));
@@ -662,7 +676,10 @@ public class AnalyserTest {
 
     Metadata metadata = analyser.analyse(dataType);
 
-    assertThat(metadata.getUnderriddenMethods()).containsExactly(StandardMethod.HASH_CODE);
+    assertThat(metadata.getStandardMethodUnderrides()).isEqualTo(ImmutableMap.of(
+        StandardMethod.EQUALS, UnderrideLevel.ABSENT,
+        StandardMethod.HASH_CODE, UnderrideLevel.FINAL,
+        StandardMethod.TO_STRING, UnderrideLevel.ABSENT));
     assertThat(messager.getMessagesByElement().asMap())
         .containsEntry("hashCode", ImmutableList.of(
             "[ERROR] hashCode and equals must be implemented together on @FreeBuilder types"));
@@ -684,8 +701,10 @@ public class AnalyserTest {
 
     Metadata metadata = analyser.analyse(dataType);
 
-    assertThat(metadata.getUnderriddenMethods())
-        .containsExactly(StandardMethod.HASH_CODE, StandardMethod.EQUALS);
+    assertThat(metadata.getStandardMethodUnderrides()).isEqualTo(ImmutableMap.of(
+        StandardMethod.EQUALS, UnderrideLevel.FINAL,
+        StandardMethod.HASH_CODE, UnderrideLevel.FINAL,
+        StandardMethod.TO_STRING, UnderrideLevel.ABSENT));
     assertThat(messager.getMessagesByElement().asMap()).isEmpty();
   }
 
@@ -702,7 +721,10 @@ public class AnalyserTest {
 
     Metadata metadata = analyser.analyse(dataType);
 
-    assertThat(metadata.getUnderriddenMethods()).containsExactly(StandardMethod.TO_STRING);
+    assertThat(metadata.getStandardMethodUnderrides()).isEqualTo(ImmutableMap.of(
+        StandardMethod.EQUALS, UnderrideLevel.ABSENT,
+        StandardMethod.HASH_CODE, UnderrideLevel.ABSENT,
+        StandardMethod.TO_STRING, UnderrideLevel.FINAL));
     assertThat(messager.getMessagesByElement().asMap()).isEmpty();
   }
 
@@ -725,8 +747,10 @@ public class AnalyserTest {
 
     Metadata metadata = analyser.analyse(dataType);
 
-    assertThat(metadata.getUnderriddenMethods())
-        .containsExactly(StandardMethod.EQUALS, StandardMethod.HASH_CODE, StandardMethod.TO_STRING);
+    assertThat(metadata.getStandardMethodUnderrides()).isEqualTo(ImmutableMap.of(
+        StandardMethod.EQUALS, UnderrideLevel.FINAL,
+        StandardMethod.HASH_CODE, UnderrideLevel.FINAL,
+        StandardMethod.TO_STRING, UnderrideLevel.FINAL));
     assertThat(messager.getMessagesByElement().asMap()).isEmpty();
   }
 
@@ -742,7 +766,10 @@ public class AnalyserTest {
 
     Metadata metadata = analyser.analyse(dataType);
 
-    assertThat(metadata.getUnderriddenMethods()).isEmpty();
+    assertThat(metadata.getStandardMethodUnderrides()).isEqualTo(ImmutableMap.of(
+        StandardMethod.EQUALS, UnderrideLevel.ABSENT,
+        StandardMethod.HASH_CODE, UnderrideLevel.ABSENT,
+        StandardMethod.TO_STRING, UnderrideLevel.ABSENT));
     assertThat(messager.getMessagesByElement().asMap()).isEmpty();
   }
 
@@ -758,7 +785,10 @@ public class AnalyserTest {
 
     Metadata metadata = analyser.analyse(dataType);
 
-    assertThat(metadata.getUnderriddenMethods()).isEmpty();
+    assertThat(metadata.getStandardMethodUnderrides()).isEqualTo(ImmutableMap.of(
+        StandardMethod.EQUALS, UnderrideLevel.ABSENT,
+        StandardMethod.HASH_CODE, UnderrideLevel.ABSENT,
+        StandardMethod.TO_STRING, UnderrideLevel.ABSENT));
     assertThat(messager.getMessagesByElement().asMap()).isEmpty();
   }
 
@@ -774,7 +804,10 @@ public class AnalyserTest {
 
     Metadata metadata = analyser.analyse(dataType);
 
-    assertThat(metadata.getUnderriddenMethods()).isEmpty();
+    assertThat(metadata.getStandardMethodUnderrides()).isEqualTo(ImmutableMap.of(
+        StandardMethod.EQUALS, UnderrideLevel.ABSENT,
+        StandardMethod.HASH_CODE, UnderrideLevel.ABSENT,
+        StandardMethod.TO_STRING, UnderrideLevel.ABSENT));
     assertThat(messager.getMessagesByElement().asMap()).isEmpty();
   }
 
