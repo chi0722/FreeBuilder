@@ -30,19 +30,6 @@ import static org.inferred.freebuilder.processor.BuilderFactory.NO_ARGS_CONSTRUC
 import static org.inferred.freebuilder.processor.MethodFinder.methodsOn;
 import static org.inferred.freebuilder.processor.util.ModelUtils.findAnnotationMirror;
 
-import com.google.common.annotations.GwtCompatible;
-import com.google.common.base.Optional;
-import com.google.common.base.Predicate;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Sets;
-
-import org.inferred.freebuilder.processor.Metadata.Property;
-import org.inferred.freebuilder.processor.Metadata.StandardMethod;
-import org.inferred.freebuilder.processor.PropertyCodeGenerator.Config;
-import org.inferred.freebuilder.processor.util.ImpliedClass;
-import org.inferred.freebuilder.processor.util.IsInvalidTypeVisitor;
-
 import java.beans.Introspector;
 import java.io.Serializable;
 import java.util.LinkedHashMap;
@@ -69,6 +56,19 @@ import javax.lang.model.type.WildcardType;
 import javax.lang.model.util.Elements;
 import javax.lang.model.util.SimpleTypeVisitor6;
 import javax.lang.model.util.Types;
+
+import org.inferred.freebuilder.processor.Metadata.Property;
+import org.inferred.freebuilder.processor.Metadata.StandardMethod;
+import org.inferred.freebuilder.processor.PropertyCodeGenerator.Config;
+import org.inferred.freebuilder.processor.util.ImpliedClass;
+import org.inferred.freebuilder.processor.util.IsInvalidTypeVisitor;
+
+import com.google.common.annotations.GwtCompatible;
+import com.google.common.base.Optional;
+import com.google.common.base.Predicate;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 
 /**
  * Analyses a {@link org.inferred.freebuilder.FreeBuilder FreeBuilder}
@@ -137,9 +137,7 @@ class Analyser {
     return new Metadata.Builder(elements)
         .setType(type)
         .setBuilder(builder.or(generatedBuilder))
-        .setBuilderFactory(builder.isPresent()
-            ? BuilderFactory.from(builder.get())
-            : Optional.of(NO_ARGS_CONSTRUCTOR))
+        .setBuilderFactory(getBuilderFactory(builder))
         .setGeneratedBuilder(generatedBuilder)
         .setValueType(generatedBuilder.createNestedClass("Value"))
         .setPartialType(generatedBuilder.createNestedClass("Partial"))
@@ -310,6 +308,17 @@ class Analyser {
     }
 
     return userClass;
+  }
+
+  private Optional<BuilderFactory> getBuilderFactory(Optional<TypeElement> builder) {
+    if (!builder.isPresent()) {
+      return Optional.of(NO_ARGS_CONSTRUCTOR);
+    }
+    if (!builder.get().getModifiers().contains(Modifier.STATIC)) {
+      messager.printMessage(ERROR, "Builder must be static on @FreeBuilder types", builder.get());
+      return Optional.absent();
+    }
+    return BuilderFactory.from(builder.get());
   }
 
   private Map<String, Property> findProperties(
